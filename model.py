@@ -6,9 +6,12 @@ import dgl.function as fn
 from functools import partial
 
 from torch import optim
+from RGCN import *
 
 SOS_token = 0
 EOS_token = 1
+device = "cpu"
+max_length = 20
 
 # ---------------------- GNN encoder ----------------------------
 
@@ -90,6 +93,7 @@ class LSTM_node_generator(nn.Module):
     
     
 class LSTM_phrase_generator(nn.Module):
+    # take hidden state of LSTM_node_generator as input
     def __init__(self, hidden_size, output_size):
         super(LSTM_phrase_generator, self).__init__()
         self.hidden_size = hidden_size
@@ -133,20 +137,50 @@ class LSTM_edge_generator(nn.Module):
 
 class graph_to_graph(nn.Module):
     # take a Commonsense graph as input, output generated new nodes(phrase) and edges(phrase)
-    def __init__(self, input_size, hidden_size, node_output_size, phrase_output_size, edge_output_size):
+    def __init__(self, input_size, hidden_size, node_output_size, phrase_output_size, edge_output_size, num_rels, n_hidden_layers, n_bases = -1):
         super(graph_to_graph, self).__init__()
         self.node = LSTM_node_generator(hidden_size, node_output_size)
         self.phrase = LSTM_phrase_generator(hidden_size, phrase_output_size) #TODO: replace by gpt-2
         self.edge = LSTM_edge_generator(hidden_size, edge_output_size)
-        self.graph_encoder = Net(input_size, 256, hidden_size)
+        # USE vanilla GCN
+        #self.graph_encoder = Net(input_size, 256, hidden_size)
+        # USE R-GCN
+        self.graph_encoder = Model(input_size,
+              hidden_size,
+              hidden_size,
+              num_rels,
+              num_bases=n_bases,
+              num_hidden_layers=n_hidden_layers)
         
-    def forward(self, g, feature, max_length = 100):
-        # get graph embedding
-        g_embedding, node_embedding = self.graph_encoder(g, feature)
+    def generate_node_baseline(self, g):
+        node_embedding, g_embedding = self.graph_encoder(g)
         node_embedding = list(node_embedding)
         
         node_decoder_input = torch.tensor([[SOS_token]], device=device)
-        node_decoder_hidden = g_embedding
+        node_decoder_hidden = (g_embedding.view(1,1,-1), torch.zeros_like(g_embedding).view(1,1,-1))
+        
+        new_node_list = []
+        
+        # TODO: implementing teacher-forcing
+        for ni in range(max_length):
+            node_decoder_output, node_decoder_hidden = self.node(
+                node_decoder_input, node_decoder_hidden)
+            new_node_embedding = node_decoder_hidden
+            topv, topi = node_decoder_output.topk(1)
+            node_decoder_input = topi.squeeze().detach()  # detach from history as input
+            print(node_decoder_input)
+            if node_decoder_input.item() == EOS_token: # stop generating node
+                break
+            else:  # new node embedding generated
+                new_node_list.append(node_decoder_input.item())
+        return new_node_list
+    
+    def generate_node(self, g):
+        node_embedding, g_embedding = self.graph_encoder(g)
+        node_embedding = list(node_embedding)
+        
+        node_decoder_input = torch.tensor([[SOS_token]], device=device)
+        node_decoder_hidden = (g_embedding.view(1,1,-1), torch.zeros_like(g_embedding).view(1,1,-1))
         
         new_node_list = []
         new_phrase_list = []
@@ -157,6 +191,51 @@ class graph_to_graph(nn.Module):
             node_decoder_output, node_decoder_hidden = self.node(
                 node_decoder_input, node_decoder_hidden)
             new_node_embedding = node_decoder_hidden
+            topv, topi = node_decoder_output.topk(1)
+            node_decoder_input = topi.squeeze().detach()  # detach from history as input
+            print(node_decoder_input)
+            if node_decoder_input.item() == EOS_token: # stop generating node
+                break
+            else:  # new node embedding generated
+                # add new node embedding to the list
+                new_node_list.append(new_node_embedding)
+                # generate new phrase
+                new_phrase = []
+                phrase_decoder_input = torch.tensor([[SOS_token]], device=device)
+                phrase_decoder_hidden = (new_node_embedding.view(1,1,-1), torch.zeros_like(new_node_embedding.view(1,1,-1)))
+                for pi in range(max_length):
+                    phrase_decoder_output, phrase_decoder_hidden = self.phrase(
+                        phrase_decoder_input, phrase_decoder_hidden)
+
+                    topv, topi = phrase_decoder_output.topk(1)
+                    phrase_decoder_input = topi.squeeze().detach()  # detach from history as input
+
+                    if phrase_decoder_input.item() == EOS_token: # stop generating node
+                        break
+                    new_phrase.append(phrase_decoder_input)
+                    
+                new_phrase_list.append(new_phrase)
+                
+        return new_phrase_list
+    
+    def forward(self, g, max_length = 100):
+        # get graph embedding
+        node_embedding, g_embedding = self.graph_encoder(g)
+        node_embedding = list(node_embedding)
+        
+        node_decoder_input = torch.tensor([[SOS_token]], device=device)
+        node_decoder_hidden = g_embedding
+        node_decoder_hidden = (g_embedding.view(1,1,-1), torch.zeros_like(g_embedding).view(1,1,-1))
+        
+        new_node_list = []
+        new_phrase_list = []
+        new_edge_list = []
+        
+        # TODO: implementing teacher-forcing
+        for ni in range(max_length):
+            node_decoder_output, node_decoder_hidden = self.node(
+                node_decoder_input, node_decoder_hidden)
+            new_node_embedding = node_decoder_hidden[0]
             topv, topi = node_decoder_output.topk(1)
             node_decoder_input = topi.squeeze().detach()  # detach from history as input
             if node_decoder_input.item() == EOS_token: # stop generating node
