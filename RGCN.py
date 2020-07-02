@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import dgl
 from dgl import DGLGraph
 import dgl.function as fn
 from functools import partial
@@ -140,6 +141,7 @@ class Model(nn.Module):
         for layer in self.layers:
             layer(g)
             
+        g_emb = dgl.mean_nodes(g, 'h')
         output = g.ndata.pop('h')
-        g_emb = torch.mean(output, axis = 0)
+        #g_emb = torch.mean(output, axis = 0)
         return output, g_emb

@@ -69,9 +69,10 @@ class Net(nn.Module):
 
 class LSTM_node_generator(nn.Module):
     # hidden_size the same as GNN output
-    def __init__(self, hidden_size, output_size):
+    def __init__(self, hidden_size, output_size, batch_size = 1):
         super(LSTM_node_generator, self).__init__()
         self.hidden_size = hidden_size
+        self.batch_size = batch_size
 
         self.embedding = nn.Embedding(output_size, hidden_size)
         self.lstm = nn.LSTM(hidden_size, hidden_size)
@@ -82,7 +83,7 @@ class LSTM_node_generator(nn.Module):
         self.rewards = []
 
     def forward(self, input, hidden):
-        output = self.embedding(input).view(1, 1, -1)
+        output = self.embedding(input).view(1, self.batch_size, -1)
         output = F.relu(output)
         output, hidden = self.lstm(output, hidden)
         output = self.softmax(self.out(output[0]))
