@@ -53,6 +53,7 @@ def gen_training_set(seed_graph, new_nodes_num, num = 512):
     X = []
     y = []
     count = 0
+    reset_count = 0
     i = -1
     while count < num:
         i += 1
@@ -65,6 +66,10 @@ def gen_training_set(seed_graph, new_nodes_num, num = 512):
             X.append(list(node_list))
             y.append(list(potential_node))
             count += 1
+        if reset_count > 99:
+            sampler_list = create_graph_sampler()
+            reset_count = 0
+            i = -1
     return X,y
 
 if __name__ == "__main__":
