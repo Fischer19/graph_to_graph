@@ -1,0 +1,6 @@
+name: fischer
+dependencies:
+  - cudatoolkit
+  - cudnn
+  - pytorch=1.3.0
+
