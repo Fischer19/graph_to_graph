@@ -195,4 +195,4 @@ if __name__ == "__main__":
                 num_bases=n_bases,
                 num_hidden_layers=n_hidden_layers).to(device)
     print("-------------- Training start -------------")
-    supervised_train(graph_encoder, node_generator, 5000, X[:batch_size* num_batch], y[:batch_size*num_batch], 100, 5e-3, True, test_X = X[batch_size*num_batch:batch_size*(1+num_batch)], test_y=y[batch_size*num_batch:batch_size*(num_batch+1)])
+    supervised_train(graph_encoder, node_generator, 10000, X[:batch_size* num_batch], y[:batch_size*num_batch], 10, 1e-3, True, test_X = X[batch_size*num_batch:batch_size*(1+num_batch)], test_y=y[batch_size*num_batch:batch_size*(num_batch+1)])
