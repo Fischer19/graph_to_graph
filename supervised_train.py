@@ -113,6 +113,8 @@ def supervised_train(graph_encoder, node_decoder, iteration, X, y, batch_size = 
             #print(test_output)
             evaluate(output, y, test_output, test_y)
             print("Iteration {}/{}, loss:{:.2f}".format(i, iteration, loss.item()))
+            torch.save(node_decoder.state_dict(), "node_decoder_parameters.pth")
+            torch.save(graph_encoder.state_dict(), "graph_encoder_parameters.pth")
 
 def trainIteration(graph_encoder, node_decoder, batch_graph, target, batch_size = 10, criterion = None, graph_encoder_optimizer = None, node_decoder_optimizer = None, teacher_forcing = True, train = True):
     loss = 0
@@ -195,4 +197,4 @@ if __name__ == "__main__":
                 num_bases=n_bases,
                 num_hidden_layers=n_hidden_layers).to(device)
     print("-------------- Training start -------------")
-    supervised_train(graph_encoder, node_generator, 10000, X[:batch_size* num_batch], y[:batch_size*num_batch], 10, 1e-3, True, test_X = X[batch_size*num_batch:batch_size*(1+num_batch)], test_y=y[batch_size*num_batch:batch_size*(num_batch+1)])
+    supervised_train(graph_encoder, node_generator, 10000, X[:batch_size* num_batch], y[:batch_size*num_batch], 100, 2e-4, True, test_X = X[batch_size*num_batch:batch_size*(1+num_batch)], test_y=y[batch_size*num_batch:batch_size*(num_batch+1)])
