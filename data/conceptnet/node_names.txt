@@ -1,0 +1,11 @@
+[CLS]
+[SEP]
+hockey
+play on ice
+restroom
+rest area
+eat breakfast
+make breakfast
+book
+table
+dust

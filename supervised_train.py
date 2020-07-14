@@ -178,13 +178,13 @@ if __name__ == "__main__":
     print("-------------- Training data generated -------------")
     CORPUS_SIZE = 10000
     input_size = 300
-    hidden_size = 64
+    hidden_size = 128
     node_output_size = g.ndata['x'].shape[0] + 2
     phrase_output_size = CORPUS_SIZE
     edge_output_size = CORPUS_SIZE
     num_rels = 34
     batch_size = 100
-    num_batch = 8
+    num_batch = 5
     n_hidden_layers = 2
     n_bases = -1
     device = torch.device("cuda")
@@ -196,5 +196,7 @@ if __name__ == "__main__":
                 num_rels,
                 num_bases=n_bases,
                 num_hidden_layers=n_hidden_layers).to(device)
+    node_generator.load_state_dict(torch.load("node_decoder_parameters.pth"))
+    graph_encoder.load_state_dict(torch.load("graph_encoder_parameters.pth"))
     print("-------------- Training start -------------")
-    supervised_train(graph_encoder, node_generator, 10000, X[:batch_size* num_batch], y[:batch_size*num_batch], 100, 2e-4, True, test_X = X[batch_size*num_batch:batch_size*(1+num_batch)], test_y=y[batch_size*num_batch:batch_size*(num_batch+1)])
+    supervised_train(graph_encoder, node_generator, 10000, X[:batch_size* num_batch], y[:batch_size*num_batch], 100, 5e-4, True, test_X = X[batch_size*num_batch:batch_size*(1+num_batch)], test_y=y[batch_size*num_batch:batch_size*(num_batch+1)])
