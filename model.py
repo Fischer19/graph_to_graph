@@ -95,20 +95,26 @@ class LSTM_node_generator(nn.Module):
     
 class LSTM_phrase_generator(nn.Module):
     # take hidden state of LSTM_node_generator as input
-    def __init__(self, hidden_size, output_size):
+    def __init__(self, hidden_size, output_size, num_rels = 34, with_rel = True):
         super(LSTM_phrase_generator, self).__init__()
         self.hidden_size = hidden_size
+        self.num_rels = num_rels
 
-        self.embedding = nn.Embedding(output_size, hidden_size)
+        self.embedding = nn.Embedding(output_size, hidden_size) 
         self.lstm = nn.LSTM(hidden_size, hidden_size)
         self.out = nn.Linear(hidden_size, output_size)
+        if with_rel:
+            self.out1 = nn.Linear(hidden_size, num_rels)
         self.softmax = nn.LogSoftmax(dim=1)
 
-    def forward(self, input, hidden):
+    def forward(self, input, hidden, first_layer = False):
         output = self.embedding(input).view(1, 1, -1)
         output = F.relu(output)
         output, hidden = self.lstm(output, hidden)
-        output = self.softmax(self.out(output[0]))
+        if first_layer:
+            output = self.softmax(self.out1(output[0]))
+        else:
+            output = self.softmax(self.out(output[0]))
         return output, hidden
 
     def initHidden(self):
