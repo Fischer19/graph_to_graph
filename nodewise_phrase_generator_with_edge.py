@@ -13,6 +13,7 @@ from RGCN import *
 from model import *
 from transformers import BertTokenizer
 import argparse
+import time
 
 
 def gen_phrase_with_edge(phrase_decoder, new_node_embedding, target_id, edge_label, teacher_forcing = True):
@@ -42,6 +43,7 @@ def gen_phrase_with_edge(phrase_decoder, new_node_embedding, target_id, edge_lab
 
 def train(model_list, g_list, args, teacher_forcing = True):
     #CUDA_LAUNCH_BLOCKING=1
+    start_time = time.time()
     graph_encoder, node_generator, phrase_generator = model_list
     learning_rate = args.learning_rate
     graph_encoder_optimizer = optim.Adagrad(graph_encoder.parameters(), lr=learning_rate)
@@ -95,7 +97,8 @@ def train(model_list, g_list, args, teacher_forcing = True):
             graph_encoder_optimizer.step()
             phrase_decoder_optimizer.step()
         if i % 10 == 0:
-            print("Phrase loss: {:.4f} / Total loss: {:.4f}".format(phrase_loss_sum.cpu().item(), loss.cpu().item(),phrase_output))
+            elapsed_time = time.time() - start_time
+            print("Phrase loss: {:.4f} / Total loss: {:.4f}--Time elapsed{}".format(phrase_loss_sum.cpu().item(), loss.cpu().item(),phrase_output, time.strftime("%H:%M:%S", time.gmtime(elapsed_time))))
             torch.save(node_generator.state_dict(), "parameters/nodewise_node_decoder_parameters_input{}_h{}.pth".format(args.input_size, args.hidden_size))
             torch.save(graph_encoder.state_dict(), "parameters/nodewise_graph_encoder_parameters_input{}_h{}.pth".format(args.input_size, args.hidden_size))
             torch.save(phrase_generator.state_dict(), "parameters/nodewise_phrase_generator_parameters_input{}_h{}.pth".format(args.input_size, args.hidden_size))
