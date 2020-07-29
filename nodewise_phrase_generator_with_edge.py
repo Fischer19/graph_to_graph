@@ -98,7 +98,7 @@ def train(model_list, g_list, args, teacher_forcing = True):
             phrase_decoder_optimizer.step()
         if i % 10 == 0:
             elapsed_time = time.time() - start_time
-            print("Phrase loss: {:.4f} / Total loss: {:.4f}--Time elapsed{}".format(phrase_loss_sum.cpu().item(), loss.cpu().item(),phrase_output, time.strftime("%H:%M:%S", time.gmtime(elapsed_time))))
+            print("Phrase loss: {:.4f} / Total loss: {:.4f}--Time elapsed{}".format(phrase_loss_sum.cpu().item(), loss.cpu().item(), time.strftime("%H:%M:%S", time.gmtime(elapsed_time))))
             torch.save(node_generator.state_dict(), "parameters/nodewise_node_decoder_parameters_input{}_h{}.pth".format(args.input_size, args.hidden_size))
             torch.save(graph_encoder.state_dict(), "parameters/nodewise_graph_encoder_parameters_input{}_h{}.pth".format(args.input_size, args.hidden_size))
             torch.save(phrase_generator.state_dict(), "parameters/nodewise_phrase_generator_parameters_input{}_h{}.pth".format(args.input_size, args.hidden_size))
