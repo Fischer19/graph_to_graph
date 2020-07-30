@@ -46,9 +46,9 @@ def train(model_list, g_list, args, teacher_forcing = True):
     start_time = time.time()
     graph_encoder, node_generator, phrase_generator = model_list
     learning_rate = args.learning_rate
-    graph_encoder_optimizer = optim.Adagrad(graph_encoder.parameters(), lr=learning_rate)
-    node_decoder_optimizer = optim.Adagrad(node_generator.parameters(), lr=learning_rate)
-    phrase_decoder_optimizer = optim.Adagrad(phrase_generator.parameters(), lr=learning_rate)
+    graph_encoder_optimizer = optim.Adam(graph_encoder.parameters(), lr=learning_rate)
+    node_decoder_optimizer = optim.Adam(node_generator.parameters(), lr=learning_rate)
+    phrase_decoder_optimizer = optim.Adam(phrase_generator.parameters(), lr=learning_rate)
 
     for i in range(args.iteration):
         for j in range(args.train_num):
