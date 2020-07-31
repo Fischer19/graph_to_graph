@@ -103,13 +103,17 @@ def train(model_list, g_list, args, teacher_forcing = True):
             torch.save(graph_encoder.state_dict(), "parameters/nodewise_graph_encoder_parameters_input{}_h{}.pth".format(args.input_size, args.hidden_size))
             torch.save(phrase_generator.state_dict(), "parameters/nodewise_phrase_generator_parameters_input{}_h{}.pth".format(args.input_size, args.hidden_size))
 
-def evaluate(nums, g_list, model_list):
+def evaluate(nums, g_list, model_list, test = False):
     graph_encoder, node_generator, phrase_generator = model_list
     count = 0
     count_edge = 0
     total = 0
     teacher_forcing = True
-    for j in range(nums):
+    if test:
+        iterate = range(nums, nums + 100)
+    else:
+        iterate = range(nums)
+    for j in iterate:
         node_embedding, g_embedding = graph_encoder(g_list[j])
         output = []
         phrase_output = []
@@ -143,8 +147,8 @@ def evaluate(nums, g_list, model_list):
                 n_id = y[j][1].index(X[j][k])
                 target_id = y[j][0][n_id]
                 phrase_loss, p_output, y_tokenize, edge_name, predicted_edge = gen_phrase_with_edge(phrase_generator, new_node_embedding, target_id, edge_label[j][k])
-                phrase_output.append(edge_name + ' ' + p_output)
-                target_output.append(predicted_edge + ' ' + tokenizer.decode(y_tokenize.view(-1).cpu().numpy()))
+                phrase_output.append(predicted_edge + ' ' + p_output)
+                target_output.append(edge_name + ' ' + tokenizer.decode(y_tokenize.view(-1).cpu().numpy()))
         for i in range(len(phrase_output)):
             total += 1
             if phrase_output[i].split(' ')[1:] == target_output[i].split(' ')[1:]:
@@ -161,6 +165,7 @@ def evaluate(nums, g_list, model_list):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--test', action = "store_true")
     parser.add_argument('-t', '--train', action = "store_true")
     parser.add_argument('-r', '--resume', action = "store_true")
     parser.add_argument('-hd', '--hidden_size', required = False, type = int, default = 64)
@@ -256,7 +261,7 @@ if __name__ == "__main__":
 
     g_list = []
     y_list = []
-    for i in range(args.train_num):
+    for i in range(args.train_num + 100 * args.test):
         g = sub_graph_G.subgraph(X[i])
         g.copy_from_parent()
         g.ndata["x"] = g.ndata["x"].float().to(device)
@@ -276,4 +281,4 @@ if __name__ == "__main__":
         node_generator.load_state_dict(torch.load("parameters/nodewise_node_decoder_parameters_input{}_h{}.pth".format(args.input_size, args.hidden_size)))
         graph_encoder.load_state_dict(torch.load("parameters/nodewise_graph_encoder_parameters_input{}_h{}.pth".format(args.input_size, args.hidden_size)))
         phrase_generator.load_state_dict(torch.load("parameters/nodewise_phrase_generator_parameters_input{}_h{}.pth".format(args.input_size, args.hidden_size)))
-        evaluate(args.train_num, g_list, [graph_encoder, node_generator, phrase_generator])
+        evaluate(args.train_num, g_list, [graph_encoder, node_generator, phrase_generator], test = args.test)
